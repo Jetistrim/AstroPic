@@ -6,6 +6,6 @@
 /build/
 
 # Environment variables
-.env*
+.env.local
 
 /desenferrujando
