@@ -1,14 +1,11 @@
 import type { Route } from "./+types/home";
 // import { Button } from "~/components/ui/button";
-import React, { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Link, useParams, useNavigate } from "react-router";
-import {
-   Camera,
-   ArrowLeft,
-   ArrowRight,
-   ExternalLink,
-   AlertTriangle,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router";
+import { APODCard } from "~/components/APODCards";
+import { ErrorMessage } from "~/components/ErrorMessage";
+import { LoadingSpinner } from "~/components/LoadingSpinner";
+import type { APODData } from "../lib/apod.types";
 
 // --- I still need search what this function do ---
 
@@ -18,133 +15,6 @@ export function meta({}: Route.MetaArgs) {
       { name: "description", content: "Welcome to React Router!" },
    ];
 }
-
-// --- TYPES ---
-// Define a estrutura dos dados que esperamos da API da NASA.
-interface APODData {
-   date: string;
-   explanation: string;
-   hdurl: string;
-   media_type: "image" | "video";
-   title: string;
-   url: string;
-   copyright?: string;
-}
-
-// --- COMPONENTES AUXILIARES ---
-
-// Componente para exibir um spinner de carregamento enquanto os dados são buscados.
-function LoadingSpinner() {
-   return (
-      <div className="flex flex-col items-center justify-center gap-4 text-center">
-         <span className="loading loading-spinner text-primary loading-lg"></span>
-         <p className="text-primary/70 text-lg">A buscar as estrelas...</p>
-      </div>
-   );
-}
-
-// Componente para exibir mensagens de erro de forma clara.
-function ErrorMessage({ message }: { message?: string }) {
-   return (
-      <div role="alert" className="alert alert-error max-w-lg shadow-lg">
-         <AlertTriangle className="h-6 w-6" />
-         <div>
-            <h3 className="font-bold">Oops! Algo correu mal.</h3>
-            <div className="text-xs">
-               {message || "Ocorreu um erro ao contactar a API da NASA."}
-            </div>
-         </div>
-      </div>
-   );
-}
-
-// --- COMPONENTE DO CARD ---
-
-interface APODCardProps {
-   data: APODData;
-   prevDate: string;
-   nextDate: string | null;
-};
-
-// Componente que exibe a imagem ou vídeo do dia, com título, descrição e navegação.
-function APODCard({ data, prevDate, nextDate }: APODCardProps) {
-   return (
-      <div className="card lg:card-side bg-base-100/60 shadow-xl glass max-w-5xl animate__animated animate__fadeIn">
-         <figure className="lg:w-1/2 bg-base-300/50">
-            {data.media_type === "image" ? (
-               <img
-                  src={data.url}
-                  alt={data.title}
-                  className="w-full h-full object-cover"
-               />
-            ) : (
-               <iframe
-                  src={data.url}
-                  title={data.title}
-                  className="w-full h-full aspect-video lg:aspect-auto"
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-               />
-            )}
-         </figure>
-         <div className="card-body lg:w-1/2 flex flex-col p-6 lg:p-8">
-            <h2 className="card-title text-2xl lg:text-3xl font-bold">
-               {data.title}
-            </h2>
-            <p className="text-sm text-base-content/80 mb-4">
-               {new Date(data.date + "T12:00:00").toLocaleDateString("pt-BR", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-               })}
-            </p>
-
-            <div className="flex-grow overflow-y-auto max-h-60 pr-2">
-               <p className="text-base-content/90">{data.explanation}</p>
-            </div>
-
-            {data.copyright && (
-               <p className="mt-4 text-xs italic opacity-70">
-                  Créditos: {data.copyright}
-               </p>
-            )}
-
-            <div className="card-actions justify-between items-center mt-6 flex-wrap gap-4">
-               <div className="join">
-                  <Link
-                     to={`/date/${prevDate}`}
-                     className="btn btn-outline join-item"
-                  >
-                     <ArrowLeft size={16} /> Anterior
-                  </Link>
-                  {nextDate ? (
-                     <Link
-                        to={`/date/${nextDate}`}
-                        className="btn btn-outline join-item"
-                     >
-                        Próximo <ArrowRight size={16} />
-                     </Link>
-                  ) : (
-                     <button className="btn btn-outline join-item" disabled>
-                        Próximo <ArrowRight size={16} />
-                     </button>
-                  )}
-               </div>
-               <a
-                  href={data.hdurl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-primary"
-               >
-                  Ver em HD <ExternalLink size={16} className="ml-2" />
-               </a>
-            </div>
-         </div>
-      </div>
-   );
-}
-
-// --- PÁGINA PRINCIPAL (PARA EXPORTAR) ---
 
 // Função auxiliar para formatar a data para o formato YYYY-MM-DD
 const getFormattedDate = (date: Date): string => {
@@ -166,7 +36,7 @@ export default function Home() {
          setApodData(null);
          const apiKey = import.meta.env.VITE_NASA_API_KEY;
          if (!apiKey || apiKey === "SUA_CHAVE_API_AQUI") {
-            setError("Chave da API da NASA não configurada. Verifique o arquivo .env.local");
+            setError("Chave da API da NASA não configurada. Verifique o arquivo .env");
             setIsLoading(false);
             return;
          }
@@ -178,7 +48,7 @@ export default function Home() {
                const errorData = await response.json();
                throw new Error(errorData.msg || `A imagem para esta data não foi encontrada ou houve um erro na API.`);
             }
-            const data: APODData = await response.json();
+            const data: APODData = await response.json();            
             setApodData(data);
             if (!dateParam && data.date) {
                setLatestDate(data.date); // Salva a última data disponível
@@ -206,7 +76,7 @@ export default function Home() {
             setIsLoading(false);
          } else {
             fetchAPOD(dateParam);
-            // Busca a última data disponível apenas uma vez
+            // Busca a última data disponível
             if (!latestDate) {
                const apiKey = import.meta.env.VITE_NASA_API_KEY;
                if (apiKey && apiKey !== "SUA_CHAVE_API_AQUI") {
