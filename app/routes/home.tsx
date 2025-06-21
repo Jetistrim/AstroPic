@@ -1,7 +1,7 @@
 import type { Route } from "./+types/home";
 // import { Button } from "~/components/ui/button";
 import React, { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Link, useParams } from "react-router";
+import { BrowserRouter, Routes, Link, useParams, useNavigate } from "react-router";
 import {
    Camera,
    ArrowLeft,
@@ -10,6 +10,8 @@ import {
    AlertTriangle,
 } from "lucide-react";
 
+// --- I still need search what this function do ---
+
 export function meta({}: Route.MetaArgs) {
    return [
       { title: "New React Router App" },
@@ -17,7 +19,7 @@ export function meta({}: Route.MetaArgs) {
    ];
 }
 
-// --- TIPOS ---
+// --- TYPES ---
 // Define a estrutura dos dados que esperamos da API da NASA.
 interface APODData {
    date: string;
@@ -151,44 +153,37 @@ const getFormattedDate = (date: Date): string => {
 
 export default function Home() {
    const { date: dateParam } = useParams<{ date?: string }>();
+   const navigate = useNavigate();
    const [apodData, setApodData] = useState<APODData | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
+   const [latestDate, setLatestDate] = useState<string | null>(null);
 
    useEffect(() => {
-      const targetDate = dateParam
-         ? new Date(dateParam + "T12:00:00")
-         : new Date();
-
-      const fetchAPOD = async () => {
+      const fetchAPOD = async (targetDate?: string) => {
          setIsLoading(true);
          setError(null);
          setApodData(null);
-
-         const formattedDate = getFormattedDate(targetDate);
          const apiKey = import.meta.env.VITE_NASA_API_KEY;
-
          if (!apiKey || apiKey === "SUA_CHAVE_API_AQUI") {
-            setError(
-               "Chave da API da NASA não configurada. Verifique o arquivo .env.local"
-            );
+            setError("Chave da API da NASA não configurada. Verifique o arquivo .env.local");
             setIsLoading(false);
             return;
          }
-
          try {
-            const response = await fetch(
-               `https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${formattedDate}`
-            );
+            let url = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}`;
+            if (targetDate) url += `&date=${targetDate}`;
+            const response = await fetch(url);
             if (!response.ok) {
                const errorData = await response.json();
-               throw new Error(
-                  errorData.msg ||
-                     `A imagem para esta data não foi encontrada ou houve um erro na API.`
-               );
+               throw new Error(errorData.msg || `A imagem para esta data não foi encontrada ou houve um erro na API.`);
             }
             const data: APODData = await response.json();
             setApodData(data);
+            if (!dateParam && data.date) {
+               setLatestDate(data.date); // Salva a última data disponível
+               navigate(`/date/${data.date}`, { replace: true, state: { apodData: data } });
+            }
          } catch (err) {
             if (err instanceof Error) {
                setError(err.message);
@@ -200,8 +195,31 @@ export default function Home() {
          }
       };
 
-      fetchAPOD();
-   }, [dateParam]);
+      if (!dateParam) {
+         fetchAPOD();
+      } else {
+         // Se veio do redirecionamento e já tem dados, usa-os
+         const nav = window.history.state && window.history.state.usr;
+         if (nav && nav.apodData) {
+            setApodData(nav.apodData);
+            setLatestDate(nav.apodData.date); // Salva a última data disponível
+            setIsLoading(false);
+         } else {
+            fetchAPOD(dateParam);
+            // Busca a última data disponível apenas uma vez
+            if (!latestDate) {
+               const apiKey = import.meta.env.VITE_NASA_API_KEY;
+               if (apiKey && apiKey !== "SUA_CHAVE_API_AQUI") {
+                  fetch(`https://api.nasa.gov/planetary/apod?api_key=${apiKey}`)
+                     .then(res => res.json())
+                     .then(data => {
+                        if (data.date) setLatestDate(data.date);
+                     });
+               }
+            }
+         }
+      }
+   }, [dateParam, navigate]);
 
    // Calcula as datas anterior e próxima para a navegação.
    const getNavDates = () => {
@@ -215,6 +233,21 @@ export default function Home() {
       const next = new Date(targetDate);
       next.setDate(targetDate.getDate() + 1);
 
+      // Usa a última data disponível da API como limite
+      if (latestDate) {
+         const last = new Date(latestDate + "T12:00:00");
+         if (next > last) {
+            return {
+               prevDate: getFormattedDate(prev),
+               nextDate: null,
+            };
+         }
+         return {
+            prevDate: getFormattedDate(prev),
+            nextDate: getFormattedDate(next),
+         };
+      }
+      // fallback para hoje
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Normaliza a data de hoje para comparação
       if (next > today) {
@@ -223,7 +256,6 @@ export default function Home() {
             nextDate: null,
          };
       }
-
       return {
          prevDate: getFormattedDate(prev),
          nextDate: getFormattedDate(next),
