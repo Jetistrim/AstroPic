@@ -7,11 +7,13 @@ export function APODCard({ data, prevDate, nextDate }: APODCardProps) {
       <div className="card lg:card-side bg-base-100/60 shadow-xl glass max-w-5xl animate__animated animate__fadeIn">
          <figure className="lg:w-1/2 bg-base-300/50">
             {data.media_type === "image" ? (
-               <img
-                  src={data.url}
-                  alt={data.title}
-                  className="w-full h-full object-cover"
-               />
+               <div className="flex items-center justify-center">
+                  <img
+                     src={data.url}
+                     alt={data.title}
+                     className=""
+                  />
+               </div>
             ) : (
                <iframe
                   src={data.url}
@@ -36,11 +38,9 @@ export function APODCard({ data, prevDate, nextDate }: APODCardProps) {
             <div className="flex-grow overflow-y-auto max-h-60 pr-2">
                <p className="text-base-content/90">{data.explanation}</p>
             </div>
-            {data.copyright && (
-               <p className="mt-4 text-xs italic opacity-70">
-                  Créditos: {data.copyright ? data.copyright : "Unknown"}
-               </p>
-            )}
+            <p className="mt-4 text-xs italic opacity-70">
+               Créditos: {data.copyright ? data.copyright : "National Aeronautics and Space Administration — NASA"}
+            </p>
             <div className="card-actions justify-between items-center mt-6 flex-wrap gap-4">
                <div className="join">
                   <Link
