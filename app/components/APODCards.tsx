@@ -41,18 +41,18 @@ export function APODCard({ data, prevDate, nextDate }: APODCardProps) {
             <p className="mt-4 text-xs italic opacity-70">
                Créditos: {data.copyright ? data.copyright : "National Aeronautics and Space Administration — NASA"}
             </p>
-            <div className="card-actions justify-between items-center mt-6 flex-wrap gap-4">
-               <div className="join">
+            <div className="flex justify-center card-actions sm:justify-end items-center mt-6 flex-wrap gap-4">
+               <div className="w-full flex justify-center items-center sm:justify-end">
                   <Link
                      to={`/date/${prevDate}`}
-                     className="btn btn-outline join-item"
+                     className="btn btn-outline not-hover:border-[var(--foreground)] text-[var(--foreground)] rounded-l-md sm:rounded-none sm:rounded-l-sm join-item"
                   >
                      <ArrowLeft size={16} /> Anterior
                   </Link>
                   {nextDate ? (
                      <Link
                         to={`/date/${nextDate}`}
-                        className="btn btn-outline join-item"
+                        className="btn btn-outline not-hover:border-[var(--foreground)] text-[var(--foreground)] rounded-r-md sm:rounded-none sm:rounded-r-sm join-item"
                      >
                         Próximo <ArrowRight size={16} />
                      </Link>
