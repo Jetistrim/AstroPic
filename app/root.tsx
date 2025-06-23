@@ -51,25 +51,38 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
+    message = error.status === 404 ? "Page not Found" : "Error";
     details =
       error.status === 404
         ? "The requested page could not be found."
-        : error.statusText || details;
+        : (error.data?.message as string) || error.statusText;
   } else if (import.meta.env.DEV && error && error instanceof Error) {
+    message = error.name;
     details = error.message;
     stack = error.stack;
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
+    <Layout>
+      <main
+        className="min-h-screen w-full p-4 flex items-center justify-center bg-cover bg-center bg-fixed"
+        style={{
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=2071&auto=format&fit=crop')",
+        }}
+      >
+        <div className="card bg-base-100/60 shadow-xl glass max-w-lg w-full">
+          <div className="card-body items-center text-center">
+            <h1 className="card-title text-3xl font-bold">{message}</h1>
+            <p>{details}</p>
+            {stack && (
+              <pre className="w-full p-4 text-left overflow-x-auto bg-base-300/50 rounded-md mt-4 text-xs">
+                <code>{stack}</code>
+              </pre>
+            )}
+          </div>
+        </div>
+      </main>
+    </Layout>
   );
 }
