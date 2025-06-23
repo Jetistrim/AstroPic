@@ -1,138 +1,116 @@
-import type { Route } from "./+types/home";
-// import { Button } from "~/components/ui/button";
+import {
+   useLoaderData,
+   useRouteError,
+   isRouteErrorResponse,
+   redirect,
+   type LoaderFunctionArgs,
+} from "react-router";
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
-import { APODCard } from "~/components/APODCards";
-import { ErrorMessage } from "~/components/ErrorMessage";
-import { LoadingSpinner } from "~/components/LoadingSpinner";
+
+import { APODCard } from "../components/APODCards";
+import { ErrorMessage } from "../components/ErrorMessage";
+import { LoadingSpinner } from "../components/LoadingSpinner";
 import type { APODData } from "../lib/apod.types";
 
-// --- I still need search what this function do ---
+// Auxiliary function to format date as YYYY-MM-DD
+const getFormattedDate = (date: Date): string =>
+   date.toISOString().split("T")[0];
 
-export function meta({}: Route.MetaArgs) {
-   return [
-      { title: "New React Router App" },
-      { name: "description", content: "Welcome to React Router!" },
-   ];
+export async function loader({ params }: LoaderFunctionArgs) {
+   const apiKey = import.meta.env.VITE_NASA_API_KEY;
+   if (!apiKey || apiKey === "SUA_CHAVE_API_AQUI") {
+      throw new Response(
+         JSON.stringify({
+            message:
+               "Chave da API da NASA não configurada. Verifique o arquivo .env",
+         }),
+         { status: 500 }
+      );
+   }
+   const targetDate = params.date;
+   if (!targetDate) {
+      const latestResponse = await fetch(
+         `https://api.nasa.gov/planetary/apod?api_key=${apiKey}`
+      );
+      if (!latestResponse.ok) {
+         throw new Response(
+            JSON.stringify({
+               message:
+                  "Não foi possível obter a data mais recente da API da NASA.",
+            }),
+            { status: 500 }
+         );
+      }
+      const latestApodData: APODData = await latestResponse.json();
+      return redirect(`/date/${latestApodData.date}`);
+   }
+   const [targetDateResponse, latestDateResponse] = await Promise.all([
+      fetch(
+         `https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${targetDate}`
+      ),
+      fetch(`https://api.nasa.gov/planetary/apod?api_key=${apiKey}`),
+   ]);
+   if (!targetDateResponse.ok) {
+      const errorData = await targetDateResponse.json();
+      throw new Response(
+         JSON.stringify({
+            message:
+               errorData.msg ||
+               `A imagem para a data ${targetDate} não foi encontrada.`,
+         }),
+         { status: targetDateResponse.status, statusText: "Não Encontrado" }
+      );
+   }
+   const apodData: APODData = await targetDateResponse.json();
+   let latestDate: string;
+   if (!latestDateResponse.ok) {
+      latestDate = apodData.date;
+   } else {
+      const latestApodData: APODData = await latestDateResponse.json();
+      latestDate = latestApodData.date;
+   }
+   const target = new Date(apodData.date + "T12:00:00");
+   const prev = new Date(target);
+   prev.setDate(target.getDate() - 1);
+   const next = new Date(target);
+   next.setDate(target.getDate() + 1);
+   const last = new Date(latestDate + "T12:00:00");
+   let nextDate: string | null = getFormattedDate(next);
+   if (next > last) nextDate = null;
+   return {
+      apodData,
+      prevDate: getFormattedDate(prev),
+      nextDate,
+   };
 }
 
-// Função auxiliar para formatar a data para o formato YYYY-MM-DD
-const getFormattedDate = (date: Date): string => {
-   return date.toISOString().split("T")[0];
-};
+// Meta tags should be handled in your route config or with a dedicated component in v7
 
 export default function Home() {
-   const { date: dateParam } = useParams<{ date?: string }>();
-   const navigate = useNavigate();
-   const [apodData, setApodData] = useState<APODData | null>(null);
-   const [isLoading, setIsLoading] = useState(true);
-   const [error, setError] = useState<string | null>(null);
-   const [latestDate, setLatestDate] = useState<string | null>(null);
-
-   useEffect(() => {
-      const fetchAPOD = async (targetDate?: string) => {
-         setIsLoading(true);
-         setError(null);
-         setApodData(null);
-         const apiKey = import.meta.env.VITE_NASA_API_KEY;
-         if (!apiKey || apiKey === "SUA_CHAVE_API_AQUI") {
-            setError("Chave da API da NASA não configurada. Verifique o arquivo .env");
-            setIsLoading(false);
-            return;
-         }
-         try {
-            let url = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}`;
-            if (targetDate) url += `&date=${targetDate}`;
-            const response = await fetch(url);
-            if (!response.ok) {
-               const errorData = await response.json();
-               throw new Error(errorData.msg || `A imagem para esta data não foi encontrada ou houve um erro na API.`);
-            }
-            const data: APODData = await response.json();            
-            setApodData(data);
-            if (!dateParam && data.date) {
-               setLatestDate(data.date); // Salva a última data disponível
-               navigate(`/date/${data.date}`, { replace: true, state: { apodData: data } });
-            }
-         } catch (err) {
-            if (err instanceof Error) {
-               setError(err.message);
-            } else {
-               setError("Um erro desconhecido ocorreu.");
-            }
-         } finally {
-            setIsLoading(false);
-         }
-      };
-
-      if (!dateParam) {
-         fetchAPOD();
-      } else {
-         // Se veio do redirecionamento e já tem dados, usa-os
-         const nav = window.history.state && window.history.state.usr;
-         if (nav && nav.apodData) {
-            setApodData(nav.apodData);
-            setLatestDate(nav.apodData.date); // Salva a última data disponível
-            setIsLoading(false);
-         } else {
-            fetchAPOD(dateParam);
-            // Busca a última data disponível
-            if (!latestDate) {
-               const apiKey = import.meta.env.VITE_NASA_API_KEY;
-               if (apiKey && apiKey !== "SUA_CHAVE_API_AQUI") {
-                  fetch(`https://api.nasa.gov/planetary/apod?api_key=${apiKey}`)
-                     .then(res => res.json())
-                     .then(data => {
-                        if (data.date) setLatestDate(data.date);
-                     });
-               }
-            }
-         }
-      }
-   }, [dateParam, navigate]);
-
-   // Calcula as datas anterior e próxima para a navegação.
-   const getNavDates = () => {
-      const targetDate = dateParam
-         ? new Date(dateParam + "T12:00:00")
-         : new Date();
-
-      const prev = new Date(targetDate);
-      prev.setDate(targetDate.getDate() - 1);
-
-      const next = new Date(targetDate);
-      next.setDate(targetDate.getDate() + 1);
-
-      // Usa a última data disponível da API como limite
-      if (latestDate) {
-         const last = new Date(latestDate + "T12:00:00");
-         if (next > last) {
-            return {
-               prevDate: getFormattedDate(prev),
-               nextDate: null,
-            };
-         }
-         return {
-            prevDate: getFormattedDate(prev),
-            nextDate: getFormattedDate(next),
-         };
-      }
-      // fallback para hoje
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Normaliza a data de hoje para comparação
-      if (next > today) {
-         return {
-            prevDate: getFormattedDate(prev),
-            nextDate: null,
-         };
-      }
-      return {
-         prevDate: getFormattedDate(prev),
-         nextDate: getFormattedDate(next),
-      };
+   const { apodData, prevDate, nextDate } = useLoaderData() as {
+      apodData: APODData;
+      prevDate: string;
+      nextDate: string | null;
    };
 
-   const { prevDate, nextDate } = getNavDates();
+   // Loading Handler
+   const [imgLoaded, setImgLoaded] = useState(false);
+   useEffect(() => {
+      setImgLoaded(false);
+      if (apodData?.url) {
+         const img = new window.Image();
+         img.src = apodData.url;
+         img.onload = () => setImgLoaded(true);
+         img.onerror = () => setImgLoaded(true); // evita travar caso erro
+      } else {
+         setImgLoaded(true);
+      }
+   }, [apodData?.url]);
+   if (!apodData || !imgLoaded) return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gray-400 inset-shadow-sm inset-shadow-black">
+         <LoadingSpinner />
+      </div>
+   );
 
    return (
       <div
@@ -143,16 +121,30 @@ export default function Home() {
          }}
       >
          <div className="w-full max-w-5xl mx-auto flex items-center justify-center">
-            {isLoading && <LoadingSpinner />}
-            {error && <ErrorMessage message={error} />}
-            {!isLoading && !error && apodData && (
-               <APODCard
-                  data={apodData}
-                  prevDate={prevDate}
-                  nextDate={nextDate}
-               />
-            )}
+            <APODCard data={apodData} prevDate={prevDate} nextDate={nextDate} />
          </div>
+      </div>
+   );
+}
+
+export function ErrorBoundary() {
+   const error = useRouteError();
+   if (isRouteErrorResponse(error)) {
+      return (
+         <div className="min-h-screen w-full p-4 flex items-center justify-center">
+            <ErrorMessage
+               message={
+                  error.data?.message || `${error.status} ${error.statusText}`
+               }
+            />
+         </div>
+      );
+   }
+   const errorMessage =
+      error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+   return (
+      <div className="min-h-screen w-full p-4 flex items-center justify-center">
+         <ErrorMessage message={errorMessage} />
       </div>
    );
 }
