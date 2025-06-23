@@ -6,7 +6,7 @@ import {
    type LoaderFunctionArgs,
 } from "react-router";
 import { useState, useEffect } from "react";
-
+// ALGO
 import { APODCard } from "../components/APODCards";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { LoadingSpinner } from "../components/LoadingSpinner";
