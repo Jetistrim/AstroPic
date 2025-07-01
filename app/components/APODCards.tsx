@@ -29,7 +29,7 @@ export function APODCard({ data, prevDate, nextDate }: APODCardProps) {
                {data.title}
             </h2>
             <p className="text-sm text-base-content/80 mb-4">
-               {new Date(data.date + "T12:00:00").toLocaleDateString("pt-BR", {
+               {new Date(data.date + "T12:00:00").toLocaleDateString("en-US", {
                   day: "numeric",
                   month: "long",
                   year: "numeric",
@@ -39,7 +39,7 @@ export function APODCard({ data, prevDate, nextDate }: APODCardProps) {
                <p className="text-base-content/90">{data.explanation}</p>
             </div>
             <p className="mt-4 text-xs italic opacity-70">
-               Créditos: {data.copyright ? data.copyright : "National Aeronautics and Space Administration — NASA"}
+               Credits: {data.copyright ? data.copyright : "National Aeronautics and Space Administration — NASA"}
             </p>
             <div className="flex justify-center card-actions sm:justify-end items-center mt-6 flex-wrap gap-4">
                <div className="w-full flex justify-center items-center sm:justify-end">
@@ -47,18 +47,18 @@ export function APODCard({ data, prevDate, nextDate }: APODCardProps) {
                      to={`/date/${prevDate}`}
                      className="btn btn-outline not-hover:border-[var(--foreground)] text-[var(--foreground)] rounded-l-md sm:rounded-none sm:rounded-l-sm join-item"
                   >
-                     <ArrowLeft size={16} /> Anterior
+                     <ArrowLeft size={16} /> Previous
                   </Link>
                   {nextDate ? (
                      <Link
                         to={`/date/${nextDate}`}
                         className="btn btn-outline not-hover:border-[var(--foreground)] text-[var(--foreground)] rounded-r-md sm:rounded-none sm:rounded-r-sm join-item"
                      >
-                        Próximo <ArrowRight size={16} />
+                        Next <ArrowRight size={16} />
                      </Link>
                   ) : (
                      <button className="btn btn-outline join-item" disabled>
-                        Próximo <ArrowRight size={16} />
+                        Next <ArrowRight size={16} />
                      </button>
                   )}
                </div>
@@ -68,7 +68,7 @@ export function APODCard({ data, prevDate, nextDate }: APODCardProps) {
                   rel="noopener noreferrer"
                   className="btn btn-primary"
                >
-                  Ver em HD <ExternalLink size={16} className="ml-2" />
+                  View in HD <ExternalLink size={16} className="ml-2" />
                </a>
             </div>
          </div>

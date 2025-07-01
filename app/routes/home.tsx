@@ -22,7 +22,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
       throw new Response(
          JSON.stringify({
             message:
-               "Chave da API da NASA não configurada. Verifique o arquivo .env",
+               "NASA API key not configured. Check your .env file.",
          }),
          { status: 500 }
       );
@@ -36,7 +36,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
          throw new Response(
             JSON.stringify({
                message:
-                  "Não foi possível obter a data mais recente da API da NASA.",
+                  "Unable to fetch the latest date from NASA API.",
             }),
             { status: 500 }
          );
@@ -56,9 +56,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
          JSON.stringify({
             message:
                errorData.msg ||
-               `A imagem para a data ${targetDate} não foi encontrada.`,
+               `The image for the date ${targetDate} was not found.`,
          }),
-         { status: targetDateResponse.status, statusText: "Não Encontrado" }
+         { status: targetDateResponse.status, statusText: "Not Found" }
       );
    }
    const apodData: APODData = await targetDateResponse.json();
@@ -141,7 +141,7 @@ export function ErrorBoundary() {
       );
    }
    const errorMessage =
-      error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+      error instanceof Error ? error.message : "An unknown error occurred.";
    return (
       <div className="min-h-screen w-full p-4 flex items-center justify-center">
          <ErrorMessage message={errorMessage} />

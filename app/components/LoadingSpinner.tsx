@@ -12,7 +12,7 @@ export const LoadingSpinner = () => {
       setPhrase(getRandomItem(phrases));
    }, []);
 
-   const phrases = ["A buscar as estrelas...", "Tirando foto de buraco negro...", "Guardando matéria escura..."]
+   const phrases = ["Searching among the stars...", "Taking a picture of a black hole...", "Storing dark matter..."]
 
    return (
       <div className="flex flex-col items-center justify-center gap-4 text-center">
